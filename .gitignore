@@ -1,0 +1,15 @@
+# Backend
+devlog-backend/target/
+
+# Frontend
+devlog-frontend/node_modules/
+devlog-frontend/dist/
+
+# IDE
+.idea/
+*.iml
+
+# Env
+.env
+
+.DS_Store
