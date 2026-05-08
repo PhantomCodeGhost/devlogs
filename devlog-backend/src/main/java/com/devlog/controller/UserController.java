@@ -5,6 +5,7 @@ import com.devlog.dto.UserResponse;
 import com.devlog.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import com.devlog.security.JwtUtil;
 
 import java.util.List;
 
@@ -14,6 +15,7 @@ import java.util.List;
 public class UserController {
 
     private final UserService userService;
+    private final JwtUtil jwtUtil;
 
     @GetMapping("/streak")
     public Integer getStreak(
