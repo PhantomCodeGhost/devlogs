@@ -113,7 +113,7 @@ Built with modern technologies and designed for an exceptional user experience.
 
 #### **1. Clone the Repository**
 ```bash
-git clone https://github.com/parthlohar06/devlogs.git
+git clone https://github.com/PhantomCodeGhost/devlogs.git
 cd devlogs
 ```
 
@@ -303,7 +303,7 @@ Each calendar day counts only once, even if you post multiple logs.
 
 ### Frontend (.env)
 ```
-VITE_API_URL=https://devlogs-j594.onrender.com/api
+VITE_API_URL="YOUR_URL"
 ```
 
 ### Backend (application.properties)
@@ -328,7 +328,7 @@ jwt.expiration=86400000
 ### CORS Errors
 **Solution**: Add your frontend URL to backend CORS configuration
 
-See [Issues](https://github.com/parthlohar06/devlogs/issues) for more details.
+See [Issues](https://github.com/PhantomCodeGhost/devlogs/issues) for more details.
 
 ---
 
@@ -393,7 +393,7 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 ## 👨‍💻 Author
 
 **Parth Lohar**
-- GitHub: [@parthlohar06](https://github.com/parthlohar06)
+- GitHub: [@parthlohar06](https://github.com/PhantomCodeGhost)
 - Email: parth@devlogs.com
 
 ---
@@ -402,7 +402,7 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 Have questions or found a bug? 
 
-- **Issues**: [GitHub Issues](https://github.com/parthlohar06/devlogs/issues)
+- **Issues**: [GitHub Issues](https://github.com/PhantomCodeGhost/devlogs/issues)
 - **Email**: support@devlogs.com
 - **Discord**: [Join Community Server](#)
 
