@@ -66,6 +66,33 @@ public class DevLogService {
                 .build();
     }
 
+    // ✅ Helper method to update user streaks
+    private void updateUserStreak(User user) {
+        LocalDate today = LocalDate.now();
+
+        // Check if user already posted today
+        if (user.getLastActiveDate() != null && 
+            user.getLastActiveDate().equals(today)) {
+            // Already posted today, don't increment streak again
+            return;
+        }
+
+        // Check if it's consecutive day
+        if (user.getLastActiveDate() != null &&
+            user.getLastActiveDate().equals(today.minusDays(1))) {
+            // Posted yesterday, increment streak
+            user.setStreaks(user.getStreaks() + 1);
+        } else if (user.getLastActiveDate() == null ||
+                   !user.getLastActiveDate().equals(today.minusDays(1))) {
+            // Either first post or missed a day, reset/start streak
+            user.setStreaks(1);
+        }
+
+        // Update last active date
+        user.setLastActiveDate(today);
+        userRepository.save(user);
+    }
+
     public DevLogResponse createDevLog(
             CreateDevLogRequest request,
             Long userId
@@ -88,6 +115,9 @@ public class DevLogService {
         DevLog saved =
                 devLogRepository.save(devLog);
 
+        // ✅ FIXED: Update user's streak when creating devlog
+        updateUserStreak(user);
+
         return mapToResponse(saved);
     }
 
@@ -99,45 +129,47 @@ public class DevLogService {
         Pageable pageable =
                 PageRequest.of(page, size);
 
-        Page<DevLog> devLogs =
-                devLogRepository
-                        .findAllByOrderByCreatedAtDesc(
-                                pageable
-                        );
+        Page<DevLog> pageDevLogs =
+                devLogRepository.findAllByOrderByCreatedAtDesc(
+                        pageable
+                );
 
-        return devLogs.getContent()
-                .stream()
+        return pageDevLogs.stream()
                 .map(this::mapToResponse)
                 .toList();
     }
-    public DevLogResponse getDevLog(
-            Long id
-    ) {
 
-        DevLog devLog = devLogRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "DevLog not found"
-                        )
-                );
+    public DevLogResponse getDevLog(Long id) {
+
+        DevLog devLog =
+                devLogRepository
+                        .findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "DevLog not found"
+                                )
+                        );
 
         return mapToResponse(devLog);
     }
+
     public DevLogResponse updateDevLog(
             Long id,
             UpdateDevLogRequest request,
             Long userId
     ) {
 
-        DevLog devLog = devLogRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "DevLog not found"
-                        )
-                );
+        DevLog devLog =
+                devLogRepository
+                        .findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "DevLog not found"
+                                )
+                        );
 
-        if (!devLog.getUser().getId().equals(userId)) {
-
+        if (!devLog.getUser().getId()
+                .equals(userId)) {
             throw new RuntimeException(
                     "Unauthorized"
             );
@@ -158,49 +190,47 @@ public class DevLogService {
             Long userId
     ) {
 
-        DevLog devLog = devLogRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "DevLog not found"
-                        )
-                );
+        DevLog devLog =
+                devLogRepository
+                        .findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "DevLog not found"
+                                )
+                        );
 
-        if (!devLog.getUser().getId().equals(userId)) {
-
+        if (!devLog.getUser().getId()
+                .equals(userId)) {
             throw new RuntimeException(
                     "Unauthorized"
             );
         }
 
-        devLogRepository.delete(devLog);
+        devLogRepository.deleteById(id);
 
         return "DevLog deleted successfully";
     }
 
     public String toggleLike(
-            Long logId,
+            Long id,
             Long userId
     ) {
 
-        DevLog devLog = devLogRepository.findById(logId)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "DevLog not found"
-                        )
-                );
-
-        User user = userRepository.findById(userId)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "User not found"
-                        )
-                );
+        DevLog devLog =
+                devLogRepository
+                        .findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "DevLog not found"
+                                )
+                        );
 
         Optional<Like> existingLike =
-                likeRepository.findByUserAndDevLog(
-                        user,
-                        devLog
-                );
+                likeRepository
+                        .findByDevLogIdAndUserId(
+                                id,
+                                userId
+                        );
 
         if (existingLike.isPresent()) {
 
@@ -212,75 +242,48 @@ public class DevLogService {
                     devLog.getLikesCount() - 1
             );
 
-            devLogRepository.save(devLog);
+        } else {
 
-            return "Unliked";
+            Like newLike = Like.builder()
+                    .devLog(devLog)
+                    .userId(userId)
+                    .build();
+
+            likeRepository.save(newLike);
+
+            devLog.setLikesCount(
+                    devLog.getLikesCount() + 1
+            );
         }
-
-        Like like = Like.builder()
-                .user(user)
-                .devLog(devLog)
-                .build();
-
-        likeRepository.save(like);
-
-        devLog.setLikesCount(
-                devLog.getLikesCount() + 1
-        );
 
         devLogRepository.save(devLog);
 
-        return "Liked";
+        return "Like toggled";
     }
 
     public List<DevLogResponse> getMyLogs(
             Long userId
     ) {
 
-        return devLogRepository
-                .findByUserId(userId)
+        List<DevLog> myLogs =
+                devLogRepository
+                        .findByUserIdOrderByCreatedAtDesc(
+                                userId
+                        );
 
-                .stream()
-
+        return myLogs.stream()
                 .map(this::mapToResponse)
-
                 .toList();
     }
 
-    private CommentResponse mapCommentResponse(
-            Comment comment
-    ) {
-
-        User user = comment.getUser();
-
-        return CommentResponse.builder()
-
-                .id(comment.getId())
-
-                .user(
-                        UserResponse.builder()
-                                .id(user.getId())
-                                .username(user.getUsername())
-                                .email(user.getEmail())
-                                .avatar(user.getAvatar())
-                                .streaks(user.getStreaks())
-                                .build()
-                )
-
-                .content(comment.getContent())
-
-                .createdAt(comment.getCreatedAt())
-
-                .build();
-    }
-    public CommentResponse createComment(
-            Long devLogId,
+    public DevLogResponse createComment(
+            Long logId,
             CreateCommentRequest request,
             Long userId
     ) {
 
         DevLog devLog =
-                devLogRepository.findById(devLogId)
+                devLogRepository.findById(logId)
                         .orElseThrow(() ->
                                 new RuntimeException(
                                         "DevLog not found"
@@ -296,13 +299,12 @@ public class DevLogService {
                         );
 
         Comment comment = Comment.builder()
-                .user(user)
                 .devLog(devLog)
+                .user(user)
                 .content(request.getContent())
                 .build();
 
-        Comment saved =
-                commentRepository.save(comment);
+        commentRepository.save(comment);
 
         devLog.setCommentsCount(
                 devLog.getCommentsCount() + 1
@@ -310,21 +312,63 @@ public class DevLogService {
 
         devLogRepository.save(devLog);
 
-        return mapCommentResponse(saved);
+        return mapToResponse(devLog);
     }
 
-    public List<CommentResponse> getComments(
-            Long devLogId
-    ) {
+    public List<CommentResponse>
+    getComments(Long logId) {
 
-        return commentRepository
-                .findByDevLogIdOrderByCreatedAtDesc(
-                        devLogId
+        DevLog devLog =
+                devLogRepository.findById(logId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "DevLog not found"
+                                )
+                        );
+
+        return devLog.getComments().stream()
+                .map(comment ->
+                        CommentResponse.builder()
+                                .id(comment.getId())
+                                .content(
+                                        comment
+                                                .getContent()
+                                )
+                                .user(
+                                        UserResponse
+                                                .builder()
+                                                .id(comment
+                                                        .getUser()
+                                                        .getId()
+                                                )
+                                                .username(
+                                                        comment
+                                                                .getUser()
+                                                                .getUsername()
+                                                )
+                                                .email(
+                                                        comment
+                                                                .getUser()
+                                                                .getEmail()
+                                                )
+                                                .avatar(
+                                                        comment
+                                                                .getUser()
+                                                                .getAvatar()
+                                                )
+                                                .streaks(
+                                                        comment
+                                                                .getUser()
+                                                                .getStreaks()
+                                                )
+                                                .build()
+                                )
+                                .createdAt(
+                                        comment
+                                                .getCreatedAt()
+                                )
+                                .build()
                 )
-                .stream()
-                .map(this::mapCommentResponse)
                 .toList();
     }
-
-
 }
