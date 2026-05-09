@@ -17,6 +17,22 @@ public class UserController {
     private final UserService userService;
     private final JwtUtil jwtUtil;
 
+    // ✅ NEW ENDPOINT: Get current authenticated user
+    @GetMapping("/me")
+    public UserResponse getCurrentUser(
+            @RequestHeader("Authorization")
+            String authHeader
+    ) {
+
+        String token =
+                authHeader.substring(7);
+
+        Long userId =
+                jwtUtil.extractUserId(token);
+
+        return userService.getUser(userId);
+    }
+
     @GetMapping("/streak")
     public Integer getStreak(
 
