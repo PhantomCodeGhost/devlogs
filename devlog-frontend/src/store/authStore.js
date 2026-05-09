@@ -49,9 +49,13 @@ export const useAuthStore = create((set, get) => ({
 
             set({ token })
 
+            return response.data
+
         } catch (error) {
 
             console.error(error)
+            // Re-throw error so LoginPage can handle it
+            throw error
         }
     },
 
@@ -63,23 +67,29 @@ export const useAuthStore = create((set, get) => ({
 
         try {
 
-            await api.post(
-                "/auth/register",
-                {
-                    username,
-                    email,
-                    password
-                }
-            )
+            const response = 
+                await api.post(
+                    "/auth/register",
+                    {
+                        username,
+                        email,
+                        password
+                    }
+                )
 
+            // After successful registration, log the user in
             await get().login(
                 email,
                 password
             )
 
+            return response.data
+
         } catch (error) {
 
             console.error(error)
+            // Re-throw error so LoginPage can handle it
+            throw error
         }
     }
 
