@@ -3,7 +3,6 @@ import { useEffect, useState } from "react"
 import api from "../services/api"
 
 import DevLogCard from "../components/DevLogCard"
-import { useAuthStore } from "../store/authStore"
 
 export default function ProfilePage() {
 
@@ -12,39 +11,15 @@ export default function ProfilePage() {
         username: "",
         streaks: 0,
         totalLogs: 0,
-        totalLikes: 0
+        totalLikes: 0,
+        totalComments: 0
     })
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState("")
-    const { token } = useAuthStore()
 
     useEffect(() => {
-
         fetchMyLogs()
-        fetchUserStats()
-
     }, [])
-
-    const fetchUserStats = async () => {
-
-        try {
-
-            const response =
-                await api.get("/users/me")
-
-            setUserStats({
-                username: response.data.username,
-                streaks: response.data.streaks || 0,
-                totalLogs: 0,  // Will update from logs fetch
-                totalLikes: 0  // Will update from logs fetch
-            })
-
-        } catch (err) {
-
-            console.error("Error fetching user stats:", err)
-            setError("Failed to load user stats")
-        }
-    }
 
     const fetchMyLogs = async () => {
 
@@ -54,25 +29,38 @@ export default function ProfilePage() {
             setError("")
 
             const response =
-                await api.get(
-                    "/logs/my"
-                )
+                await api.get("/logs/my")
 
-            setLogs(response.data || [])
+            const logsData = response.data || []
+            setLogs(logsData)
 
-            // Calculate total likes from all logs
-            const totalLikes = response.data.reduce((sum, log) => sum + (log.likesCount || 0), 0)
-            
-            setUserStats(prev => ({
-                ...prev,
-                totalLogs: response.data.length,
-                totalLikes: totalLikes
-            }))
+            // Extract user info from first log (they're all the same user)
+            if (logsData.length > 0) {
+                const firstLog = logsData[0]
+                const totalLikes = logsData.reduce((sum, log) => sum + (log.likesCount || 0), 0)
+                const totalComments = logsData.reduce((sum, log) => sum + (log.commentsCount || 0), 0)
+
+                setUserStats({
+                    username: firstLog.user?.username || "Developer",
+                    streaks: firstLog.user?.streaks || 0,
+                    totalLogs: logsData.length,
+                    totalLikes: totalLikes,
+                    totalComments: totalComments
+                })
+            } else {
+                // No logs, set default stats
+                setUserStats(prev => ({
+                    ...prev,
+                    totalLogs: 0,
+                    totalLikes: 0,
+                    totalComments: 0
+                }))
+            }
 
         } catch (err) {
 
             console.error("Error fetching logs:", err)
-            setError("Failed to load your dev logs")
+            setError("Failed to load your dev logs. Please try again.")
             setLogs([])
         } finally {
 
@@ -95,7 +83,7 @@ export default function ProfilePage() {
                 "
             >
 
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between flex-wrap gap-6">
 
                     <div>
 
@@ -106,7 +94,7 @@ export default function ProfilePage() {
                                 dark:text-white
                             "
                         >
-                            {userStats.username || "My Profile"}
+                            {userStats.username}
                         </h1>
 
                         <p
@@ -130,8 +118,12 @@ export default function ProfilePage() {
                         "
                     >
 
-                        <div className="text-4xl font-bold text-pastelPink mb-1">
-                            🔥 {userStats.streaks || 0}
+                        <div className="text-5xl font-bold mb-1">
+                            🔥
+                        </div>
+
+                        <div className="text-3xl font-bold text-pastelPink mb-1">
+                            {userStats.streaks}
                         </div>
 
                         <p className="text-sm text-gray-600 dark:text-gray-300">
@@ -145,42 +137,42 @@ export default function ProfilePage() {
                 {/* Stats Row */}
                 <div
                     className="
-                        grid grid-cols-3 gap-4 mt-6
+                        grid grid-cols-3 gap-4 mt-8
                         text-center
                     "
                 >
 
-                    <div>
+                    <div className="bg-white/40 dark:bg-gray-700/40 rounded-2xl p-4">
 
-                        <div className="text-2xl font-bold dark:text-white">
+                        <div className="text-3xl font-bold dark:text-white">
                             {userStats.totalLogs}
                         </div>
 
-                        <p className="text-sm text-gray-600 dark:text-gray-300">
+                        <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
                             Dev Logs
                         </p>
 
                     </div>
 
-                    <div>
+                    <div className="bg-white/40 dark:bg-gray-700/40 rounded-2xl p-4">
 
-                        <div className="text-2xl font-bold dark:text-white">
+                        <div className="text-3xl font-bold dark:text-white">
                             {userStats.totalLikes}
                         </div>
 
-                        <p className="text-sm text-gray-600 dark:text-gray-300">
+                        <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
                             Total Likes
                         </p>
 
                     </div>
 
-                    <div>
+                    <div className="bg-white/40 dark:bg-gray-700/40 rounded-2xl p-4">
 
-                        <div className="text-2xl font-bold dark:text-white">
-                            {logs.reduce((sum, log) => sum + (log.commentsCount || 0), 0)}
+                        <div className="text-3xl font-bold dark:text-white">
+                            {userStats.totalComments}
                         </div>
 
-                        <p className="text-sm text-gray-600 dark:text-gray-300">
+                        <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
                             Comments
                         </p>
 
@@ -236,9 +228,21 @@ export default function ProfilePage() {
             {/* Empty State */}
             {!loading && logs.length === 0 && !error && (
                 <div className="text-center py-12">
-                    <p className="text-gray-500 text-lg">
+                    <p className="text-gray-500 text-lg mb-4">
                         No dev logs yet. Start sharing your journey! ✍️
                     </p>
+                    <button
+                        onClick={() => window.location.href = '/'}
+                        className="
+                            px-6 py-3 rounded-2xl
+                            bg-pastelPink
+                            text-white font-semibold
+                            hover:opacity-90
+                            transition-all
+                        "
+                    >
+                        Go to Dashboard
+                    </button>
                 </div>
             )}
 
@@ -271,7 +275,6 @@ export default function ProfilePage() {
                             <DevLogCard
                                 key={log.id}
                                 log={log}
-                                onCommentAdded={() => fetchMyLogs()}
                             />
                         ))}
 
