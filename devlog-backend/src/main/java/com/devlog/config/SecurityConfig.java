@@ -76,11 +76,14 @@ public class SecurityConfig {
         CorsConfiguration configuration =
                 new CorsConfiguration();
 
-     configuration.setAllowedOrigins(
-        List.of("https://devlogs-five.vercel.app",
-                "http://localhost:5173"
-        )
-);
+        // ✅ FIXED: Added new Vercel URL
+        configuration.setAllowedOrigins(
+            List.of(
+                "https://devlogs-five.vercel.app",          // Old URL (keep for compatibility)
+                "https://devlogs-n3v4i7wze-parthlohar06-7431s-projects.vercel.app",  // ✅ NEW URL
+                "http://localhost:5173"                      // Local development
+            )
+        );
 
         configuration.setAllowedMethods(
                 List.of("*")
