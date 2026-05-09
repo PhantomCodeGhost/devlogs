@@ -12,7 +12,7 @@ export const useCommentStore = create((set) => ({
 
             const response =
                 await api.get(
-                    `/comments/${logId}`
+                    `/logs/${logId}/comments`  // ✅ FIXED: Added /logs prefix
                 )
 
             set((state) => ({
@@ -27,7 +27,14 @@ export const useCommentStore = create((set) => ({
 
         } catch (error) {
 
-            console.error(error)
+            console.error("Error fetching comments:", error)
+            // Set empty array if fetch fails
+            set((state) => ({
+                comments: {
+                    ...state.comments,
+                    [logId]: []
+                }
+            }))
         }
     },
 
@@ -39,13 +46,13 @@ export const useCommentStore = create((set) => ({
         try {
 
             await api.post(
-                `/comments/${logId}`,
+                `/logs/${logId}/comments`,  // ✅ FIXED: Added /logs prefix
                 { content }
             )
 
             const response =
                 await api.get(
-                    `/comments/${logId}`
+                    `/logs/${logId}/comments`  // ✅ FIXED: Added /logs prefix
                 )
 
             set((state) => ({
@@ -60,7 +67,7 @@ export const useCommentStore = create((set) => ({
 
         } catch (error) {
 
-            console.error(error)
+            console.error("Error adding comment:", error)
         }
     }
 }))
