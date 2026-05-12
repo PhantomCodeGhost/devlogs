@@ -225,11 +225,12 @@ public class DevLogService {
                                 )
                         );
 
+        // ✅ FIXED: Use correct method name and parameter order
         Optional<Like> existingLike =
                 likeRepository
-                        .findByDevLogIdAndUserId(
-                                id,
-                                userId
+                        .findByUserIdAndDevLogId(
+                                userId,
+                                id
                         );
 
         if (existingLike.isPresent()) {
@@ -244,9 +245,13 @@ public class DevLogService {
 
         } else {
 
+            // ✅ FIXED: Use correct field names (user and devLog)
             Like newLike = Like.builder()
+                    .user(userRepository.findById(userId)
+                            .orElseThrow(() -> 
+                                    new RuntimeException("User not found")
+                            ))
                     .devLog(devLog)
-                    .userId(userId)
                     .build();
 
             likeRepository.save(newLike);
@@ -276,7 +281,7 @@ public class DevLogService {
                 .toList();
     }
 
-    public DevLogResponse createComment(
+    public CommentResponse createComment(
             Long logId,
             CreateCommentRequest request,
             Long userId
@@ -312,7 +317,19 @@ public class DevLogService {
 
         devLogRepository.save(devLog);
 
-        return mapToResponse(devLog);
+        // ✅ FIXED: Return CommentResponse, not DevLogResponse
+        return CommentResponse.builder()
+                .id(comment.getId())
+                .content(comment.getContent())
+                .user(UserResponse.builder()
+                        .id(user.getId())
+                        .username(user.getUsername())
+                        .email(user.getEmail())
+                        .avatar(user.getAvatar())
+                        .streaks(user.getStreaks())
+                        .build())
+                .createdAt(comment.getCreatedAt())
+                .build();
     }
 
     public List<CommentResponse>
@@ -326,7 +343,10 @@ public class DevLogService {
                                 )
                         );
 
-        return devLog.getComments().stream()
+        // ✅ FIXED: Use CommentRepository instead of devLog.getComments()
+        return commentRepository
+                .findByDevLogIdOrderByCreatedAtDesc(logId)
+                .stream()
                 .map(comment ->
                         CommentResponse.builder()
                                 .id(comment.getId())
